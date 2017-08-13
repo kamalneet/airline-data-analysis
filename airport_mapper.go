@@ -16,7 +16,7 @@ func airport_mapper_main() {
     if err == io.EOF {
       break
     }
-    check(err)
+    check(err, "csv read")
     if fields[0] == "Year" {
       continue
     }
