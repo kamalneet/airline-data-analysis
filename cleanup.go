@@ -13,14 +13,40 @@ import(
 	"strings"
 )
 
+type FieldInfo struct {
+	name string
+	idx int // in original CSV file
+}
+
+var field_info = []FieldInfo {
+  FieldInfo { name: "Year", idx: -1,},
+  FieldInfo { name: "Month", idx: -1,},
+  FieldInfo { name: "DayofMonth", idx: -1,},
+  FieldInfo { name: "DayOfWeek", idx: -1,},
+  FieldInfo { name: "UniqueCarrier", idx: -1,},
+  FieldInfo { name: "Origin",	idx: -1,},
+  FieldInfo { name: "Dest",	idx: -1,},
+  FieldInfo { name: "CRSDepTime",	idx: -1,},
+  FieldInfo { name: "DepDelay",	idx: -1,},
+  FieldInfo { name: "ArrDelay",	idx: -1,},
+  FieldInfo { name: "Cancelled",	idx: -1,},
+  FieldInfo { name: "Diverted",	idx: -1,},
+}
+
+// return field index in cleaned data
+func getFieldIndex(f_name string) int {
+	for f_idx := range field_info {
+		f := &field_info[f_idx]
+    if f.name == f_name {
+      return f_idx
+    }
+  }
+  return -1
+}
+
 var in_data_dir string
 var out_data_dir string
 var zips []string
-
-type FieldInfo struct {
-	name string
-	idx int
-}
 
 func getOutputFile(in_csv string) string {
 	return out_data_dir + "/" + filepath.Base(in_csv)
@@ -45,20 +71,6 @@ func processCSV(r io.Reader, out_csv string) {
 	check(err, out_csv)
 	w := bufio.NewWriter(of)
 
-	var field_info = []FieldInfo {
-		FieldInfo { name: "Year", idx: -1,},
-		FieldInfo { name: "Month", idx: -1,},
-		FieldInfo { name: "DayofMonth", idx: -1,},
-		FieldInfo { name: "DayOfWeek", idx: -1,},
-		FieldInfo { name: "UniqueCarrier", idx: -1,},
-		FieldInfo { name: "Origin",	idx: -1,},
-		FieldInfo { name: "Dest",	idx: -1,},
-		FieldInfo { name: "CRSDepTime",	idx: -1,},
-		FieldInfo { name: "DepDelay",	idx: -1,},
-		FieldInfo { name: "ArrDelay",	idx: -1,},
-		FieldInfo { name: "Cancelled",	idx: -1,},
-		FieldInfo { name: "Diverted",	idx: -1,},
-	}
   rdr := csv.NewReader(r)
 	headers, err := rdr.Read()
 	check(err, out_csv)
@@ -128,7 +140,7 @@ func processZip(zp string) {
 	}
 }
 
-func main() {
+func cleanup_main() {
 	in_data_dir = os.Args[1]
 	out_data_dir = os.Args[2]
 	discoverZips(in_data_dir)
