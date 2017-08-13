@@ -28,7 +28,7 @@ func getOutputFile(in_csv string) string {
 
 func discoverZips(dir string) {
 	files, err := ioutil.ReadDir(dir)
-	check(err)
+	check(err, dir)
 	for _,f := range files {
 		fpath := dir + "/" + f.Name()
 		if f.IsDir() {
@@ -42,7 +42,7 @@ func discoverZips(dir string) {
 func processCSV(r io.Reader, out_csv string) {
 	// Create output file.
 	of, err := os.Create(out_csv)
-	check(err)
+	check(err, out_csv)
 	w := bufio.NewWriter(of)
 
 	var field_info = []FieldInfo {
@@ -61,7 +61,7 @@ func processCSV(r io.Reader, out_csv string) {
 	}
   rdr := csv.NewReader(r)
 	headers, err := rdr.Read()
-	check(err)
+	check(err, out_csv)
 	// Populate 'idx' in field_info members
 	for f_idx := range field_info {
 		f := &field_info[f_idx]
@@ -87,7 +87,7 @@ func processCSV(r io.Reader, out_csv string) {
 		if err == io.EOF {
 			break
 		}
-		check(err)
+		check(err, out_csv)
 		for f_idx := range field_info {
 			f := &field_info[f_idx]
 			if f_idx > 0 {
@@ -112,12 +112,15 @@ func processCSV(r io.Reader, out_csv string) {
 
 func processZip(zp string) {
 	r, err := zip.OpenReader(zp)
-	check(err)
+	if err != nil {
+		log.Println("Unable to parse", zp, err)
+		return
+	}
 	defer r.Close()
 	for _, f := range r.File {
 		if strings.HasSuffix(f.Name, ".csv") {
 			rc, err := f.Open()
-			check(err)
+			check(err, zp)
 			out_csv := getOutputFile(f.Name)
 			processCSV(rc, out_csv)
 			rc.Close()
@@ -126,8 +129,8 @@ func processZip(zp string) {
 }
 
 func main() {
-	in_data_dir = "/home/kamalne.singh/tmp"
-	out_data_dir = "/home/kamalne.singh/tmp/clean"
+	in_data_dir = os.Args[1]
+	out_data_dir = os.Args[2]
 	discoverZips(in_data_dir)
 	log.Println(zips)
 	for _,zip := range zips {
@@ -135,8 +138,9 @@ func main() {
 	}
 }
 
-func check(e error) {
+func check(e error, str string) {
 	if e != nil {
+		log.Println(str)
 		panic(e)
 	}
 }
