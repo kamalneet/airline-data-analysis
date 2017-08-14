@@ -1,5 +1,7 @@
 package main
 
+// ./airline_arrival_delay_mapper < ~/tmp/clean/On_Time_On_Time_Performance_1990_1_head.csv |./airline_arrival_perf_reducer
+
 import(
 	"bufio"
 	"fmt"
@@ -17,6 +19,10 @@ func airline_arrival_perf_reducer_main() {
     airline := scanner.Text()
     checkBool(scanner.Scan())
     delay_str := scanner.Text()
+    if delay_str == "_" {
+      // "_" is added by cleanup script for records where it is not available
+      continue
+    }
     delay, err := strconv.Atoi(delay_str)
     check(err, delay_str)
     arrCounts[airline]++

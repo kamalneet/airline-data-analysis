@@ -20,7 +20,6 @@ func airline_arrival_delay_mapper_main() {
     if fields[0] == "Year" {
       continue
     }
-    fmt.Println(fields[getFieldIndex("UniqueCarrier")], "\t", 1)
-    fmt.Println(fields[getFieldIndex("ArrDelay")], "\t", 1)
+    fmt.Println(fields[getFieldIndex("UniqueCarrier")], "\t", fields[getFieldIndex("ArrDelay")])
   }
 }
