@@ -33,7 +33,8 @@ func airline_arrival_perf_reducer_main() {
     arrDelays[airline] += int64(delay)
   }
   for airline,delay := range arrDelays {
-    fmt.Println(airline, "\t", float64(delay)/float64(arrCounts[airline]));
+    cnt := arrCounts[airline]
+    fmt.Println(airline, "\t", float64(delay)/float64(cnt), "\tflights:", cnt);
   }
-  fmt.Println("Number of records with bad arrival delay:", delay_parse_errors) 
+  fmt.Println("Number of records with bad arrival delay:", delay_parse_errors)
 }
