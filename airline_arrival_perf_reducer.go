@@ -13,6 +13,7 @@ var arrDelays map[string]int64 = make(map[string]int64)
 var arrCounts map[string]int64 = make(map[string]int64)
 
 func airline_arrival_perf_reducer_main() {
+  delay_parse_errors := 0
   scanner := bufio.NewScanner(os.Stdin)
   scanner.Split(bufio.ScanWords)
   for scanner.Scan() {
@@ -24,11 +25,15 @@ func airline_arrival_perf_reducer_main() {
       continue
     }
     delay, err := strconv.Atoi(delay_str)
-    check(err, delay_str)
+    if err != nil {
+      delay_parse_errors++
+      continue
+    }
     arrCounts[airline]++
     arrDelays[airline] += int64(delay)
   }
   for airline,delay := range arrDelays {
     fmt.Println(airline, "\t", float64(delay)/float64(arrCounts[airline]));
   }
+  fmt.Println("Number of records with bad arrival delay:", delay_parse_errors) 
 }
