@@ -14,6 +14,7 @@ import(
 var delay_parse_errors int
 
 var apt_rparam_reducer_cassandra_table_name string
+var apt_rparam_reducer_cassandra_field_name string
 
 type flight_delay_stats struct {
   num_flights int64
@@ -100,7 +101,7 @@ func report_apt_rparam_delay(apt string, rparam_delays map[int]rparam_avg_delay_
     if cass == nil {
       continue
     }
-    query := fmt.Sprintf("INSERT INTO %s (apt, rank, rparam, avg_delay, num_flights) VALUES (?, ?, ?, ?, ?)", apt_rparam_reducer_cassandra_table_name)
+    query := fmt.Sprintf("INSERT INTO %s (apt, rank, %s, avg_delay, num_flights) VALUES (?, ?, ?, ?, ?)", apt_rparam_reducer_cassandra_table_name, apt_rparam_reducer_cassandra_field_name)
     if err := cass.Query(query,
       apt, i, stat.rparam, stat.avg_delay, stat.num_flights).Exec(); err != nil {
       log.Fatal(err)
@@ -113,10 +114,11 @@ func report_apt_rparam_delay(apt string, rparam_delays map[int]rparam_avg_delay_
 }
 
 func setup_cassandra() *gocql.Session{
-  return nil
   cluster := gocql.NewCluster("172.31.27.46")
   cluster.Keyspace = "cproj"
   session, err := cluster.CreateSession()
-  check(err,"createsession")
+  if err != nil {
+    log.Println("failed to connect to cassandra", err)
+  }
   return session
 }
