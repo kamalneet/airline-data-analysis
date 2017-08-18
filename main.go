@@ -21,7 +21,13 @@ func main() {
   } else if strings.HasSuffix(prog, "airport_airline_depdelay_mapper") {
     airport_airline_depdelay_mapper_main()
   } else if strings.HasSuffix(prog, "airport_airline_depdelay_reducer") {
-    airport_airline_depdelay_reducer_main()
+    apt_rparam_reducer_cassandra_table_name = "airport_best_airlines"
+    airport_rparam_depdelay_reducer_main()
+  } else if strings.HasSuffix(prog, "airport_airport_depdelay_mapper") {
+    airport_airport_depdelay_mapper_main()
+  } else if strings.HasSuffix(prog, "airport_airport_depdelay_reducer") {
+    apt_rparam_reducer_cassandra_table_name = "airport_best_dest_airport"
+    airport_rparam_depdelay_reducer_main()
   } else if strings.HasSuffix(prog, "airline-data-analysis") {
     fmt.Println("Please call through another executable name so that I know what to do")
   } else {
