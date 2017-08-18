@@ -18,6 +18,10 @@ func main() {
     airline_arrival_delay_mapper_main()
   } else if strings.HasSuffix(prog, "airline_arrival_perf_reducer") {
     airline_arrival_perf_reducer_main()
+  } else if strings.HasSuffix(prog, "airport_airline_depdelay_mapper") {
+    airport_airline_depdelay_mapper_main()
+  } else if strings.HasSuffix(prog, "airport_airline_depdelay_reducer") {
+    airport_airline_depdelay_reducer_main()
   } else if strings.HasSuffix(prog, "airline-data-analysis") {
     fmt.Println("Please call through another executable name so that I know what to do")
   } else {
