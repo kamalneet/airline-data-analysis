@@ -5,8 +5,10 @@ package main
 import(
 	"bufio"
 	"fmt"
+  "log"
 	"os"
   "strconv"
+  "strings"
 )
 
 var arrDelays map[string]int64 = make(map[string]int64)
@@ -15,11 +17,15 @@ var arrCounts map[string]int64 = make(map[string]int64)
 func airline_arrival_perf_reducer_main() {
   delay_parse_errors := 0
   scanner := bufio.NewScanner(os.Stdin)
-  scanner.Split(bufio.ScanWords)
   for scanner.Scan() {
-    airline := scanner.Text()
-    checkBool(scanner.Scan())
-    delay_str := scanner.Text()
+    line := scanner.Text()
+    toks := strings.Split(line, "\t")
+    if len(toks) != 2 {
+      log.Fatal(line)
+    }
+    airline := strings.TrimSpace(toks[0])
+    delay_str := strings.TrimSpace(toks[1])
+
     if delay_str == "_" {
       // "_" is added by cleanup script for records where it is not available
       continue
