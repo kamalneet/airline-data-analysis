@@ -3,6 +3,7 @@ package main
 import(
 	"bufio"
 	"fmt"
+  "github.com/gocql/gocql"
   "log"
 	"os"
   "strconv"
@@ -21,10 +22,10 @@ func (fi FlightInfo) String() string {
 }
 
 // key: src_dst_date_morning
-var best_flights_of_day map[string]FlightInfo
+var cur_src_dst_date_morning string
+var best_flight FlightInfo
 
 func g3_q2_reducer_main() {
-  best_flights_of_day = make(map[string]FlightInfo)
   cass := setup_cassandra()
   scanner := bufio.NewScanner(os.Stdin)
   for scanner.Scan() {
@@ -41,44 +42,51 @@ func g3_q2_reducer_main() {
       return
     }
     delay_str := val_toks[2]
-
     delay, err := strconv.Atoi(delay_str)
     if err != nil {
       log.Fatal("unexpected delay format: ", line)
       return
     }
-    prev_best, pres := best_flights_of_day[src_dst_date_morning]
-    if !pres || prev_best.arr_delay > delay {
-      best_flights_of_day[src_dst_date_morning] = FlightInfo {airline: val_toks[0], dep_time: val_toks[1], arr_delay: delay}
+
+    if src_dst_date_morning != cur_src_dst_date_morning && len(cur_src_dst_date_morning) > 0 {
+      best_flights_of_day_publish(cass)
+      best_flight = FlightInfo {airline: "", dep_time: "", arr_delay: 1<<30}
+    }
+    cur_src_dst_date_morning = src_dst_date_morning
+
+    if best_flight.airline == "" || best_flight.arr_delay > delay {
+      best_flight = FlightInfo {airline: val_toks[0], dep_time: val_toks[1], arr_delay: delay}
     }
   }
-  for src_dst_date_morning, f_info := range best_flights_of_day {
-    key_toks := strings.Split(src_dst_date_morning, "_")
-    if len(key_toks) != 4 {
-      log.Fatal("unexpected key format: ", src_dst_date_morning)
-      return
-    }
-    src := key_toks[0]
-    dst := key_toks[1]
-    date := key_toks[2]
-    morning_str := key_toks[3]
-    morning := morning_str == "true"
-    if !morning && morning_str != "false" {
-      log.Fatal("unexpected bool format: ", src_dst_date_morning)
-      return
-    }
-    if cass == nil {
-      fmt.Println(src, dst, date, morning, f_info)
-      continue
-    }
-    date_t, err := time.Parse("2006-01-02", date)
-    if err != nil {
-      log.Fatal(err, date)
-    }
-    query := "INSERT INTO src_dst_best_flights_of_day (src, dst, date, morning, UniqueCarrier, CRSDepTime, ArrDelay) VALUES (?, ?, ?, ?, ?, ?, ?)"
-    if err := cass.Query(query,
-      src, dst, date_t, morning, f_info.airline, f_info.dep_time, f_info.arr_delay).Exec(); err != nil {
-      log.Fatal(err, date)
-    }
+  best_flights_of_day_publish(cass)
+}
+
+func best_flights_of_day_publish(cass *gocql.Session) {
+  key_toks := strings.Split(cur_src_dst_date_morning, "_")
+  if len(key_toks) != 4 {
+    log.Fatal("unexpected key format: ", cur_src_dst_date_morning)
+    return
+  }
+  src := key_toks[0]
+  dst := key_toks[1]
+  date := key_toks[2]
+  morning_str := key_toks[3]
+  morning := morning_str == "true"
+  if !morning && morning_str != "false" {
+    log.Fatal("unexpected bool format: ", cur_src_dst_date_morning)
+    return
+  }
+  if cass == nil {
+    fmt.Println(src, dst, date, morning, best_flight)
+    return
+  }
+  date_t, err := time.Parse("2006-01-02", date)
+  if err != nil {
+    log.Fatal(err, date)
+  }
+  query := "INSERT INTO src_dst_best_flights_of_day (src, dst, date, morning, UniqueCarrier, CRSDepTime, ArrDelay) VALUES (?, ?, ?, ?, ?, ?, ?)"
+  if err := cass.Query(query,
+    src, dst, date_t, morning, best_flight.airline, best_flight.dep_time, best_flight.arr_delay).Exec(); err != nil {
+    log.Fatal(err)
   }
 }
