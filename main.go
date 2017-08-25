@@ -30,6 +30,14 @@ func main() {
     apt_rparam_reducer_cassandra_table_name = "airport_best_dest_airport"
     apt_rparam_reducer_cassandra_field_name = "dest_airport"
     airport_rparam_depdelay_reducer_main()
+  } else if strings.HasSuffix(prog, "src_dst_arrival_delay_mapper") {
+    src_dst_arrival_delay_mapper_main()
+  } else if strings.HasSuffix(prog, "src_dst_arrival_delay_reducer") {
+    src_dst_arrival_delay_reducer_main()
+  } else if strings.HasSuffix(prog, "g3_q2_mapper") {
+    g3_q2_mapper_main()
+  } else if strings.HasSuffix(prog, "g3_q2_reducer") {
+    g3_q2_reducer_main()
   } else if strings.HasSuffix(prog, "airline-data-analysis") {
     fmt.Println("Please call through another executable name so that I know what to do")
   } else {
