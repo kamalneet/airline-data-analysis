@@ -8,8 +8,8 @@ import(
 
 func main() {
   prog := os.Args[0]
-  if strings.HasSuffix(prog,"cleanup") {
-    cleanup_main()
+  if strings.HasSuffix(prog,"cleanup_data") {
+    cleanup_data_main()
   } else if strings.HasSuffix(prog, "airport_mapper") {
     airport_mapper_main()
   } else if strings.HasSuffix(prog, "airport_popularity_reducer") {

@@ -140,7 +140,7 @@ func processZip(zp string) {
 	}
 }
 
-func cleanup_main() {
+func cleanup_data_main() {
 	in_data_dir = os.Args[1]
 	out_data_dir = os.Args[2]
 	discoverZips(in_data_dir)
