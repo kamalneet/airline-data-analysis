@@ -38,9 +38,7 @@ func main() {
     g3_q2_mapper_main()
   } else if strings.HasSuffix(prog, "g3_q2_reducer") {
     g3_q2_reducer_main()
-  } else if strings.HasSuffix(prog, "airline-data-analysis") {
-    fmt.Println("Please call through another executable name so that I know what to do")
   } else {
-    fmt.Println("Called from an unknown executable:", prog)
+    main_level2()
   }
 }
