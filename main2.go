@@ -34,7 +34,7 @@ func CreateExeSymlinks() {
 	}
 	bin := gopath + "/bin"
 	err := os.Chdir(bin)
-	check(err)
+	check(err, bin)
 	log.Println("chdir to", bin)
 	for exe := range funcs {
 		_, err := os.Stat(exe)

@@ -65,6 +65,21 @@ func discoverZips(dir string) {
 	}
 }
 
+func discoverFiles(dir, suffix string) []string {
+  var allfiles []string = make([]string, 0)
+	files, err := ioutil.ReadDir(dir)
+	check(err, dir)
+	for _,f := range files {
+		fpath := dir + "/" + f.Name()
+		if f.IsDir() {
+			allfiles = append(allfiles, discoverFiles(fpath, suffix)...)
+		} else if (strings.HasSuffix(f.Name(), suffix)) {
+			allfiles = append(allfiles, fpath)
+		}
+	}
+  return allfiles
+}
+
 func processCSV(r io.Reader, out_csv string) {
 	// Create output file.
 	of, err := os.Create(out_csv)
