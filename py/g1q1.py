@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import os
 import sys
+import time
 
 from pyspark import SparkContext
 from pyspark.streaming import StreamingContext
@@ -30,6 +31,16 @@ def countReducer(newvals, v2):
 #  print("values: " + str(v1) + " " + str(v2))
   return sum(newvals) + (v2 or 0)
 
+done = False
+
+def checkEnd(rdd):
+  global done
+  print("batchsize: " + str(rdd.count()))
+  if rdd.count() == 0:
+    done = True
+#    rdd.context.stop()
+#    sys.exit()
+
 def createContext():
     # If you do not see this printed, that means the StreamingContext has been loaded
     # from the new checkpoint
@@ -37,7 +48,8 @@ def createContext():
     sc = SparkContext(appName="AirlineDataAnalysis")
     ssc = StreamingContext(sc, 1)
     
-    csvStream = KafkaUtils.createDirectStream(ssc, ["atest"], {"metadata.broker.list": "172.31.81.70:9092", "auto.offset.reset": "smallest"})
+    csvStream = KafkaUtils.createDirectStream(ssc, ["airline"], {"metadata.broker.list": "172.31.81.70:9092", "auto.offset.reset": "smallest"})
+#    csvStream.foreachRDD(checkEnd)
     aptCounts = csvStream.flatMap(airportMapper).updateStateByKey(countReducer)
     aptCounts.pprint()
     aptCounts.saveAsTextFiles("apt_counts")
@@ -48,3 +60,8 @@ if __name__ == "__main__":
                                        lambda: createContext())
     ssc.start()
     ssc.awaitTermination()
+    print("await done")
+#    while not done:
+#      print("sleeping in main loop")
+#      time.sleep(1)
+#    ssc.stop()
