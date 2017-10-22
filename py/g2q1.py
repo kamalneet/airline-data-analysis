@@ -1,4 +1,5 @@
 from __future__ import print_function
+from cassandra.cluster import Cluster
 
 import os
 import sys
@@ -46,8 +47,38 @@ def reducer(newvals, old_state):
     state[rparam] = dict_val
   return state
 
-def computeAvg(kv):
-  return (kv[0], float(kv[1][0])/kv[1][1])
+cassandraSession = None
+prepared_stmt = None
+c_table_name = "airport_best_airlines" 
+c_field_name = "airline"
+
+def getCassandraSession():
+  global cassandraSession
+  global preparedStatement
+  global c_table_name
+  global c_field_name
+  if cassandraSession is None:
+    cluster = Cluster()
+    cassandraSession = cluster.connect('spk')
+    prepared_stmt = cassandraSession.prepare("INSERT INTO " + c_table_name + " (apt, rank, " + c_field_name + ", avg_delay, num_flights) VALUES (?, ?, ?, ?, ?)")
+  return cassandraSession
+
+def sendPartition(iter):
+  # ConnectionPool is a static, lazily initialized pool of connections
+  session = getCassandraSession()
+  for kv in iter:
+    apt = kv[0]
+    dct = kv[1]
+    # copy dict to a list so that it can be sorted by average
+    lst = []
+    for airline in dct:
+      (num_flights, total_delay) = dct[airline]
+      lst.append((airline, float(total_delay)/num_flights, num_flights))
+    lst.sort(key=lambda x: x[1])
+    n = min(10, len(lst))
+    for i in xrange(n):
+      bound_stmt = prepared_stmt.bind([apt, i+1, lst[i][0], lst[i][1]], lst[i][2]);
+      stmt = session.execute(bound_stmt)
 
 def createContext():
     # If you do not see this printed, that means the StreamingContext has been loaded
@@ -58,9 +89,10 @@ def createContext():
     
     csvStream = KafkaUtils.createDirectStream(ssc, ["atest"], {"metadata.broker.list": "172.31.81.70:9092", "auto.offset.reset": "smallest"})
     # "_" is added by cleanup script for records where it is not available
-    airlineCounts = csvStream.map(aptRparamMapper).filter(lambda kv: kv[1][1] != "_").map(lambda kv: (kv[0], (kv[1][0], int(kvtup[1][1]))).updateStateByKey(reducer).map(computeAvg)
-    airlineCounts.pprint()
-    airlineCounts.saveAsTextFiles("airline_delays")
+    result = csvStream.map(aptRparamMapper).filter(lambda kv: kv[1][1] != "_").map(lambda kv: (kv[0], (kv[1][0], int(kvtup[1][1]))).updateStateByKey(reducer).map(computeAvg)
+    result.pprint()
+    foreachRDD(lambda rdd: rdd.foreachPartition(sendPartition))
+#    result.saveAsTextFiles("airline_delays")
     return ssc
 
 if __name__ == "__main__":
