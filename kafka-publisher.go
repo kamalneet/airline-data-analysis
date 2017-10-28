@@ -11,9 +11,9 @@ import (
 
 var kafkaProducer *kafka.Producer
 var kafkaDeliveryChannel chan kafka.Event
+var topic string
 
 func publishRecordToKafka(line string) {
-  topic := "airline"
 	err := kafkaProducer.Produce(&kafka.Message{TopicPartition: kafka.TopicPartition{Topic: &topic, Partition: kafka.PartitionAny}, Value: []byte(line)}, kafkaDeliveryChannel)
   check(err, line)
 }
@@ -68,6 +68,7 @@ func publishFileToKafka(file string) {
 
 func kafka_publish_main() {
   dir := os.Args[1]
+  topic = os.Args[2]
   csv_files := discoverFiles(dir, ".csv")
 
   var err error
