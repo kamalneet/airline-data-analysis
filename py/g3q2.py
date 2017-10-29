@@ -61,7 +61,7 @@ def getCassandraSession():
   if cassandraSession is None:
     cluster = Cluster(contact_points=['172.31.27.46'])
     cassandraSession = cluster.connect('spk')
-    prepared_stmt = cassandraSession.prepare("INSERT INTO src_dst_avg_delays (src, dst, avg_delay, num_flights) VALUES (?, ?, ?, ?)")
+    prepared_stmt = cassandraSession.prepare("INSERT INTO src_dst_best_flights_of_day (src, dst, date, morning, UniqueCarrier, CRSDepTime, ArrDelay) VALUES (?, ?, ?, ?, ?, ?, ?)")
   return cassandraSession
 
 def sendPartition(iter):
@@ -69,14 +69,11 @@ def sendPartition(iter):
   # ConnectionPool is a static, lazily initialized pool of connections
   session = getCassandraSession()
   for kv in iter:
-    (src,dst) = kv[0]
-    (avg_delay, num_flights) = kv[1]
-    bound_stmt = prepared_stmt.bind([src, dst, avg_delay, num_flights])
+    (src, dst, month, day_of_month, morning) = kv[0]
+    (delay, carrier, departure_time) = kv[1]
+    date_str = "2008-" + str(month) + "-" + str(day_of_month)
+    bound_stmt = prepared_stmt.bind([src, dst, date_str, morning, carrier, departure_time, delay])
     stmt = session.execute(bound_stmt)
-
-# output value: (avg, num_flights)
-def computeAvg(kv):
-  return (kv[0], (float(kv[1][0])/kv[1][1], kv[1][1]))
 
 def createContext():
     # If you do not see this printed, that means the StreamingContext has been loaded
@@ -88,8 +85,8 @@ def createContext():
     csvStream = KafkaUtils.createDirectStream(ssc, ["airline"], {"metadata.broker.list": "172.31.81.70:9092", "auto.offset.reset": "smallest", "enable.auto.commit": "false"})
     # "_" is added by cleanup script for records where it is not available
     rdd1 = csvStream.flatMap(mapper)
-    rdd2 = rdd1.filter(lambda kv: kv[1] != "_").map(lambda kv: (kv[0], int(kv[1])))
-    result = rdd2.updateStateByKey(reducer).map(computeAvg)
+#    rdd2 = rdd1.filter(lambda kv: kv[1] != "_").map(lambda kv: (kv[0], int(kv[1])))
+    result = rdd1.updateStateByKey(reducer)
     result.pprint()
     result.foreachRDD(lambda rdd: rdd.foreachPartition(sendPartition))
 #    result.saveAsTextFiles("airline_delays")
