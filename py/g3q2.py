@@ -1,13 +1,14 @@
 from __future__ import print_function
-from cassandra.cluster import Cluster
 
 import os
 import sys
 import time
+import datetime
 
 from pyspark import SparkContext
 from pyspark.streaming import StreamingContext
 from pyspark.streaming.kafka import KafkaUtils
+from cassandra.cluster import Cluster
 
 csvFields = ["Year", "Month", "DayofMonth", "DayOfWeek", "UniqueCarrier", "Origin", "Dest", "CRSDepTime", "DepDelay", "ArrDelay", "Cancelled", "Diverted"]
 
@@ -19,12 +20,14 @@ def getFieldIndex(field):
     i+=1
   return -1
 
+year_of_interest=2008
+
 def mapper(csv):
 #  print(csv)
   toks=csv[1].split(",")
 #  if toks[0] == "Year":
 #    return []
-  if toks[0] != "2008":
+  if toks[0] != str(year_of_interest):
     return []
   src_idx = getFieldIndex("Origin")
   dst_idx = getFieldIndex("Dest")
@@ -35,8 +38,8 @@ def mapper(csv):
   dep_str = toks[getFieldIndex("CRSDepTime")]
   dep_hour = int(dep_str[:2])
   morning = dep_hour < 12
-  month = toks[getFieldIndex("Month")].encode('utf-8')
-  day_of_month = toks[getFieldIndex("DayofMonth")].encode('utf-8')
+  month = int(toks[getFieldIndex("Month")])
+  day_of_month = int(toks[getFieldIndex("DayofMonth")])
   carrier = toks[getFieldIndex("UniqueCarrier")].encode('utf-8')
   return [((toks[src_idx].encode('utf-8'), toks[dst_idx].encode('utf-8'), month, day_of_month, morning), (int(delay), carrier, dep_str.encode('utf-8')))]
 
@@ -71,8 +74,9 @@ def sendPartition(iter):
   for kv in iter:
     (src, dst, month, day_of_month, morning) = kv[0]
     (delay, carrier, departure_time) = kv[1]
-    date_str = "2008-" + str(month) + "-" + str(day_of_month)
-    bound_stmt = prepared_stmt.bind([src, dst, date_str, morning, carrier, departure_time, delay])
+ #   date_str = year_of_interest + "-" + str(month) + "-" + str(day_of_month)
+    date = datetime.datetime(year_of_interest, month, day_of_month)
+    bound_stmt = prepared_stmt.bind([src, dst, date, morning, carrier, departure_time, delay])
     stmt = session.execute(bound_stmt)
 
 def createContext():
@@ -83,6 +87,8 @@ def createContext():
     ssc = StreamingContext(sc, 1)
     
     csvStream = KafkaUtils.createDirectStream(ssc, ["airline"], {"metadata.broker.list": "172.31.81.70:9092", "auto.offset.reset": "smallest", "enable.auto.commit": "false"})
+
+    csvStream.checkpoint(20)
     # "_" is added by cleanup script for records where it is not available
     rdd1 = csvStream.flatMap(mapper)
 #    rdd2 = rdd1.filter(lambda kv: kv[1] != "_").map(lambda kv: (kv[0], int(kv[1])))
